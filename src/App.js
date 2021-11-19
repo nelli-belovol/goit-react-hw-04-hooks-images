@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import shortid from 'shortid';
 import Searchbar from './Components/Searchbar/Searchbar.jsx';
@@ -9,117 +9,122 @@ import Loader from './Components/Loader/Loader.jsx';
 import Modal from './Components/Modal/Modal.jsx';
 import { getImages } from 'api/images';
 
-export default class App extends Component {
-  state = {
-    page: 1,
-    query: '',
-    images: [],
-    isLoading: false,
-    error: null,
-    showModal: false,
-    bigImg: {},
-    maxPage: 1,
+export default function App() {
+  // state = {
+  //   page: 1,
+  //   query: '',
+  //   images: [],
+  //   isLoading: false,
+  //   error: null,
+  //   showModal: false,
+  //   bigImg: {},
+  //   maxPage: 1,
+  // };
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState(null);
+  const [bigImg, setBigImg] = useState({});
+  const [maxPage, setMaxPage] = useState(1);
+
+  const handleSubmit = value => {
+    setQuery(value);
   };
 
-  handleSubmit = value => {
-    this.setState({ query: value });
+  const toggleModal = () => {
+    setShowModal(!showModal);
   };
 
-  toggleModal = () => {
-    this.setState({ showModal: !this.state.showModal });
+  const handleButton = () => {
+    setPage(page + 1);
+    setIsLoading(true);
   };
 
-  handleButton = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
-    this.setState({ isLoading: true });
+  const showImage = img => {
+    toggleModal();
+    setBigImg({ src: img.largeImageURL, alt: img.tags });
   };
 
-  showImage = img => {
-    this.toggleModal();
-    this.setState({
-      bigImg: {
-        src: img.largeImageURL,
-        alt: img.tags,
-      },
-    });
-  };
-
-  async setImages() {
+  const setImagesToState = async () => {
     try {
-      const { page, query } = this.state;
       const data = await getImages(query, page);
       const images = data.hits;
       const allPages = Math.ceil(data.total / images.length);
       if (!isNaN(allPages)) {
-        this.setState({ maxPage: allPages });
+        setMaxPage(allPages);
       } else {
-        this.setState({ maxPage: 0 });
+        setMaxPage(0);
       }
-      this.setState({ images });
+      setImages(images);
     } catch (error) {
-      this.setState({ error });
+      setError(error);
     } finally {
-      this.setState({ isLoading: false });
+      setIsLoading(false);
     }
-  }
+  };
 
-  async loadMore() {
+  const loadMore = async () => {
     try {
-      const { page, query } = this.state;
       const data = await getImages(query, page);
       const images = data.hits;
-      this.setState(prevState => ({
-        images: [...prevState.images, ...images.map(img => img)],
-      }));
+      setImages(prevState => [...prevState, ...images.map(img => img)]);
     } catch (error) {
-      this.setState({ error });
+      setError(error);
     } finally {
-      this.setState({ isLoading: false });
+      setIsLoading(false);
     }
-  }
+  };
 
-  async componentDidMount() {
-    this.setState({ isLoading: true });
-    this.setImages();
-  }
+  useEffect(() => {
+   return setImagesToState();
+  }, [query]);
 
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.query !== prevState.query) {
-      this.setImages();
-    }
-    if (this.state.page !== prevState.page) {
-      this.loadMore();
-    }
-  }
+  useEffect(() => {
+    return loadMore();
+  }, [page]);
 
-  render() {
-    return (
-      <>
-        <Searchbar onSubmit={this.handleSubmit} />
-        {this.state.images.length > 0 && (
-          <ImageGallery showImage={this.showImage}>
-            {this.state.images.map(img => {
-              return (
-                <ImageGalleryItem
-                  key={shortid.generate()}
-                  img={img}
-                  showImage={this.showImage}
-                />
-              );
-            })}
-            {this.state.showModal && (
-              <Modal onClose={this.toggleModal} image={this.state.bigImg} />
-            )}
-          </ImageGallery>
-        )}
+  useEffect(() => {
+    setIsLoading(true);
+    setImagesToState();
+  }, []);
 
-        {this.state.isLoading && <Loader />}
+  // const componentDidMount = async () => {
+  //   this.setState({ isLoading: true });
+  //   this.setImagesToState();
+  // };
 
-        {this.state.maxPage > this.state.page &&
-          this.state.images.length > 0 && (
-            <Button onClick={this.handleButton} />
-          )}
-      </>
-    );
-  }
+  // const componentDidUpdate = (prevProps, prevState) => {
+  //   if (this.state.query !== prevState.query) {
+  //     this.setImagesToState();
+  //   }
+  //   if (this.state.page !== prevState.page) {
+  //     this.loadMore();
+  //   }
+  // };
+
+  return (
+    <>
+      <Searchbar onSubmit={handleSubmit} />
+      {images.length > 0 && (
+        <ImageGallery showImage={showImage}>
+          {images.map(img => {
+            return (
+              <ImageGalleryItem
+                key={shortid.generate()}
+                img={img}
+                showImage={showImage}
+              />
+            );
+          })}
+          {showModal && <Modal onClose={toggleModal} image={bigImg} />}
+        </ImageGallery>
+      )}
+
+      {isLoading && <Loader />}
+
+      {maxPage > page && images.length > 0 && <Button onClick={handleButton} />}
+    </>
+  );
 }
