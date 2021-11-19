@@ -76,33 +76,19 @@ export default function App() {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-   return setImagesToState();
-  }, [query]);
-
-  useEffect(() => {
-    return loadMore();
-  }, [page]);
-
+  //---------------------------------------------------------------------------
+  // не разобралась с useEffect - написала методом проб и ошибок!!!
+  //---------------------------------------------------------------------------
   useEffect(() => {
     setIsLoading(true);
     setImagesToState();
-  }, []);
+    //eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
-  // const componentDidMount = async () => {
-  //   this.setState({ isLoading: true });
-  //   this.setImagesToState();
-  // };
-
-  // const componentDidUpdate = (prevProps, prevState) => {
-  //   if (this.state.query !== prevState.query) {
-  //     this.setImagesToState();
-  //   }
-  //   if (this.state.page !== prevState.page) {
-  //     this.loadMore();
-  //   }
-  // };
+  useEffect(() => {
+    loadMore();
+    //eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   return (
     <>
